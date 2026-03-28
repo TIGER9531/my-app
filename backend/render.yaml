@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: url-shortener
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: BASE_URL
+        fromService:
+          name: url-shortener
+          type: web
+          property: url
