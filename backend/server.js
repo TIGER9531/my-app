@@ -226,26 +226,3 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📝 Base URL: ${BASE_URL}`);
 });
-// Redirect short URL
-app.get('/:shortCode', async (req, res) => {
-  try {
-    const shortCode = req.params.shortCode;
-
-    const url = await Url.findOne({ shortCode });
-
-    if (!url) {
-      return res.status(404).send("Short URL not found");
-    }
-
-    // increase click count
-    url.clickCount++;
-    await url.save();
-
-    // redirect
-    res.redirect(url.originalUrl);
-
-  } catch (err) {
-    console.error("Redirect error:", err);
-    res.status(500).send("Server error");
-  }
-});
