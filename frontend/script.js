@@ -1,6 +1,5 @@
-```javascript
-// API Base URL - FIXED
-const API_BASE_URL = "https://url-shortener2-uoz1.onrender.com";
+// API Base URL - Auto-detect (works locally and on Render)
+const API_BASE_URL = window.location.origin;
 
 // DOM Elements
 const longUrlInput = document.getElementById('longUrl');
@@ -16,13 +15,19 @@ const qrCodeContainer = document.getElementById('qrCodeContainer');
 const clickCountSpan = document.getElementById('clickCount');
 const expiryInfoSpan = document.getElementById('expiryInfo');
 
-// Current shortened data
+// State
 let currentShortUrl = '';
-let currentStats = null;
 
 // Load recent links on page load
 document.addEventListener('DOMContentLoaded', () => {
   loadRecentLinks();
+  
+  // Add enter key support
+  longUrlInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      shortenBtn.click();
+    }
+  });
 });
 
 // Shorten URL button click
@@ -39,12 +44,14 @@ shortenBtn.addEventListener('click', async () => {
     return;
   }
   
+  // Disable button and show loading state
   shortenBtn.textContent = 'Shortening...';
   shortenBtn.disabled = true;
   
   try {
     const requestBody = { longUrl };
 
+    // Add custom alias if provided
     if (customAliasInput.value.trim()) {
       const alias = customAliasInput.value.trim();
       if (!/^[a-zA-Z0-9]{3,20}$/.test(alias)) {
@@ -53,6 +60,7 @@ shortenBtn.addEventListener('click', async () => {
       requestBody.customAlias = alias;
     }
     
+    // Add expiration if selected
     if (expiresInSelect.value) {
       requestBody.expiresIn = expiresInSelect.value;
     }
@@ -69,12 +77,12 @@ shortenBtn.addEventListener('click', async () => {
       throw new Error(data.error || 'Failed to shorten URL');
     }
     
+    // Display result
     currentShortUrl = data.shortUrl;
     shortenedUrlInput.value = data.shortUrl;
-    currentStats = { clickCount: 0, expiresAt: data.expiresAt };
-    
     clickCountSpan.textContent = '0 clicks';
     
+    // Set expiration info
     if (data.expiresAt) {
       const expiryDate = new Date(data.expiresAt);
       expiryInfoSpan.textContent = `Expires: ${expiryDate.toLocaleDateString()}`;
@@ -82,22 +90,29 @@ shortenBtn.addEventListener('click', async () => {
       expiryInfoSpan.textContent = 'Never expires';
     }
     
+    // Display QR code
     if (data.qrCode) {
-      qrCodeContainer.innerHTML = `<img src="${data.qrCode}" alt="QR Code">`;
+      qrCodeContainer.innerHTML = `<img src="${data.qrCode}" alt="QR Code" style="max-width: 150px;">`;
     } else {
       qrCodeContainer.innerHTML = '';
     }
     
+    // Show result and clear inputs
     resultDiv.style.display = 'block';
-    
     longUrlInput.value = '';
     customAliasInput.value = '';
     expiresInSelect.value = '';
+    
+    // Refresh recent links
     loadRecentLinks();
+    
+    // Scroll to result
+    resultDiv.scrollIntoView({ behavior: 'smooth' });
     
   } catch (error) {
     showError(error.message);
   } finally {
+    // Re-enable button
     shortenBtn.textContent = 'Shorten URL ✨';
     shortenBtn.disabled = false;
   }
@@ -115,7 +130,13 @@ copyBtn.addEventListener('click', async () => {
       copyBtn.textContent = originalText;
     }, 2000);
   } catch (err) {
-    showError('Failed to copy to clipboard');
+    // Fallback for older browsers
+    shortenedUrlInput.select();
+    document.execCommand('copy');
+    copyBtn.textContent = 'Copied! ✅';
+    setTimeout(() => {
+      copyBtn.textContent = 'Copy';
+    }, 2000);
   }
 });
 
@@ -125,7 +146,7 @@ closeResultBtn.addEventListener('click', () => {
   currentShortUrl = '';
 });
 
-// Load recent links
+// Load recent links from API
 async function loadRecentLinks() {
   try {
     const response = await fetch(`${API_BASE_URL}/api/links`);
@@ -136,34 +157,63 @@ async function loadRecentLinks() {
     }
     
     if (links.length === 0) {
-      recentLinksList.innerHTML = '<div class="loading">No links yet. Create your first short link above!</div>';
+      recentLinksList.innerHTML = '<div class="loading">✨ No links yet. Create your first short link above!</div>';
       return;
     }
     
     recentLinksList.innerHTML = links.map(link => `
       <div class="link-item">
         <div class="link-item-header">
-          <a href="${link.shortUrl}" target="_blank">${link.shortUrl}</a>
-          <button onclick="copyToClipboard('${link.shortUrl}')">Copy</button>
+          <a href="${link.shortUrl}" target="_blank" class="link-short">${link.shortUrl}</a>
+          <button onclick="copyToClipboard('${link.shortUrl}')" class="btn-secondary" style="padding: 5px 10px; font-size: 0.75rem;">Copy</button>
         </div>
-        <div>${truncateUrl(link.originalUrl, 60)}</div>
-        <div>
-          👁️ ${link.clickCount} clicks |
-          📅 ${new Date(link.createdAt).toLocaleDateString()}
+        <div class="link-original">${truncateUrl(link.originalUrl, 70)}</div>
+        <div class="link-stats">
+          <span>👁️ ${link.clickCount} clicks</span>
+          <span>📅 ${new Date(link.createdAt).toLocaleDateString()}</span>
+          ${link.expiresAt ? `<span>⏰ Expires: ${new Date(link.expiresAt).toLocaleDateString()}</span>` : '<span>✨ Never expires</span>'}
         </div>
       </div>
     `).join('');
     
   } catch (error) {
-    recentLinksList.innerHTML = '<div>Failed to load recent links.</div>';
+    console.error('Error loading links:', error);
+    recentLinksList.innerHTML = '<div class="loading">⚠️ Failed to load recent links. Please refresh the page.</div>';
   }
 }
 
-// Copy helper
+// Global copy function for recent links
 window.copyToClipboard = async (text) => {
-  await navigator.clipboard.writeText(text);
-  alert('Copied!');
+  try {
+    await navigator.clipboard.writeText(text);
+    showTemporaryMessage('✅ Link copied to clipboard!');
+  } catch (err) {
+    // Fallback
+    prompt('Copy this link:', text);
+  }
 };
+
+// Show temporary success message
+function showTemporaryMessage(message) {
+  const msgDiv = document.createElement('div');
+  msgDiv.textContent = message;
+  msgDiv.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #4caf50;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease-out;
+  `;
+  document.body.appendChild(msgDiv);
+  setTimeout(() => {
+    msgDiv.remove();
+  }, 2000);
+}
 
 // Validate URL
 function isValidUrl(string) {
@@ -175,17 +225,29 @@ function isValidUrl(string) {
   }
 }
 
-// Truncate URL
+// Truncate long URLs
 function truncateUrl(url, maxLength) {
+  if (!url) return '';
   return url.length <= maxLength ? url : url.substring(0, maxLength) + '...';
 }
 
-// Show error
+// Show error message
 function showError(message) {
+  // Remove any existing error messages
+  const existingError = document.querySelector('.error-message');
+  if (existingError) existingError.remove();
+  
   const errorDiv = document.createElement('div');
-  errorDiv.textContent = message;
-  errorDiv.style.color = 'red';
-  document.body.appendChild(errorDiv);
-  setTimeout(() => errorDiv.remove(), 3000);
+  errorDiv.className = 'error-message';
+  errorDiv.textContent = `⚠️ ${message}`;
+  
+  const inputGroup = document.querySelector('.input-group');
+  inputGroup.parentNode.insertBefore(errorDiv, inputGroup.nextSibling);
+  
+  // Auto-remove after 4 seconds
+  setTimeout(() => {
+    if (errorDiv.parentNode) {
+      errorDiv.remove();
+    }
+  }, 4000);
 }
-```
