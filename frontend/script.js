@@ -1,4 +1,4 @@
-// API Base URL - Auto-detect (works locally and on Render)
+// API Base URL - Auto-detect
 const API_BASE_URL = window.location.origin;
 
 // DOM Elements
@@ -15,7 +15,6 @@ const qrCodeContainer = document.getElementById('qrCodeContainer');
 const clickCountSpan = document.getElementById('clickCount');
 const expiryInfoSpan = document.getElementById('expiryInfo');
 
-// State
 let currentShortUrl = '';
 
 // Load recent links on page load
@@ -44,14 +43,12 @@ shortenBtn.addEventListener('click', async () => {
     return;
   }
   
-  // Disable button and show loading state
   shortenBtn.textContent = 'Shortening...';
   shortenBtn.disabled = true;
   
   try {
     const requestBody = { longUrl };
 
-    // Add custom alias if provided
     if (customAliasInput.value.trim()) {
       const alias = customAliasInput.value.trim();
       if (!/^[a-zA-Z0-9]{3,20}$/.test(alias)) {
@@ -60,7 +57,6 @@ shortenBtn.addEventListener('click', async () => {
       requestBody.customAlias = alias;
     }
     
-    // Add expiration if selected
     if (expiresInSelect.value) {
       requestBody.expiresIn = expiresInSelect.value;
     }
@@ -77,12 +73,10 @@ shortenBtn.addEventListener('click', async () => {
       throw new Error(data.error || 'Failed to shorten URL');
     }
     
-    // Display result
     currentShortUrl = data.shortUrl;
     shortenedUrlInput.value = data.shortUrl;
     clickCountSpan.textContent = '0 clicks';
     
-    // Set expiration info
     if (data.expiresAt) {
       const expiryDate = new Date(data.expiresAt);
       expiryInfoSpan.textContent = `Expires: ${expiryDate.toLocaleDateString()}`;
@@ -90,30 +84,24 @@ shortenBtn.addEventListener('click', async () => {
       expiryInfoSpan.textContent = 'Never expires';
     }
     
-    // Display QR code
     if (data.qrCode) {
-      qrCodeContainer.innerHTML = `<img src="${data.qrCode}" alt="QR Code" style="max-width: 150px;">`;
+      qrCodeContainer.innerHTML = `<img src="${data.qrCode}" alt="QR Code">`;
     } else {
       qrCodeContainer.innerHTML = '';
     }
     
-    // Show result and clear inputs
     resultDiv.style.display = 'block';
     longUrlInput.value = '';
     customAliasInput.value = '';
     expiresInSelect.value = '';
     
-    // Refresh recent links
     loadRecentLinks();
-    
-    // Scroll to result
     resultDiv.scrollIntoView({ behavior: 'smooth' });
     
   } catch (error) {
     showError(error.message);
   } finally {
-    // Re-enable button
-    shortenBtn.textContent = 'Shorten URL ✨';
+    shortenBtn.textContent = 'Shorten URL';
     shortenBtn.disabled = false;
   }
 });
@@ -125,18 +113,19 @@ copyBtn.addEventListener('click', async () => {
   try {
     await navigator.clipboard.writeText(currentShortUrl);
     const originalText = copyBtn.textContent;
-    copyBtn.textContent = 'Copied! ✅';
+    copyBtn.textContent = 'Copied!';
     setTimeout(() => {
       copyBtn.textContent = originalText;
     }, 2000);
+    showToast('Link copied to clipboard!');
   } catch (err) {
-    // Fallback for older browsers
     shortenedUrlInput.select();
     document.execCommand('copy');
-    copyBtn.textContent = 'Copied! ✅';
+    copyBtn.textContent = 'Copied!';
     setTimeout(() => {
       copyBtn.textContent = 'Copy';
     }, 2000);
+    showToast('Link copied to clipboard!');
   }
 });
 
@@ -146,7 +135,7 @@ closeResultBtn.addEventListener('click', () => {
   currentShortUrl = '';
 });
 
-// Load recent links from API
+// Load recent links
 async function loadRecentLinks() {
   try {
     const response = await fetch(`${API_BASE_URL}/api/links`);
@@ -157,7 +146,7 @@ async function loadRecentLinks() {
     }
     
     if (links.length === 0) {
-      recentLinksList.innerHTML = '<div class="loading">✨ No links yet. Create your first short link above!</div>';
+      recentLinksList.innerHTML = '<div class="loading">No links yet. Create your first short link above!</div>';
       return;
     }
     
@@ -165,7 +154,7 @@ async function loadRecentLinks() {
       <div class="link-item">
         <div class="link-item-header">
           <a href="${link.shortUrl}" target="_blank" class="link-short">${link.shortUrl}</a>
-          <button onclick="copyToClipboard('${link.shortUrl}')" class="btn-secondary" style="padding: 5px 10px; font-size: 0.75rem;">Copy</button>
+          <button onclick="copyToClipboard('${link.shortUrl}')" class="btn-secondary" style="padding: 6px 12px; font-size: 0.7rem;">Copy</button>
         </div>
         <div class="link-original">${truncateUrl(link.originalUrl, 70)}</div>
         <div class="link-stats">
@@ -178,41 +167,33 @@ async function loadRecentLinks() {
     
   } catch (error) {
     console.error('Error loading links:', error);
-    recentLinksList.innerHTML = '<div class="loading">⚠️ Failed to load recent links. Please refresh the page.</div>';
+    recentLinksList.innerHTML = '<div class="loading">Failed to load recent links. Please refresh the page.</div>';
   }
 }
 
-// Global copy function for recent links
+// Global copy function
 window.copyToClipboard = async (text) => {
   try {
     await navigator.clipboard.writeText(text);
-    showTemporaryMessage('✅ Link copied to clipboard!');
+    showToast('Link copied to clipboard!');
   } catch (err) {
-    // Fallback
     prompt('Copy this link:', text);
   }
 };
 
-// Show temporary success message
-function showTemporaryMessage(message) {
-  const msgDiv = document.createElement('div');
-  msgDiv.textContent = message;
-  msgDiv.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: #4caf50;
-    color: white;
-    padding: 12px 20px;
-    border-radius: 10px;
-    font-size: 0.9rem;
-    z-index: 1000;
-    animation: fadeIn 0.3s ease-out;
-  `;
-  document.body.appendChild(msgDiv);
+// Show toast notification
+function showToast(message) {
+  const existingToast = document.querySelector('.toast-message');
+  if (existingToast) existingToast.remove();
+  
+  const toast = document.createElement('div');
+  toast.className = 'toast-message';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
   setTimeout(() => {
-    msgDiv.remove();
-  }, 2000);
+    toast.remove();
+  }, 3000);
 }
 
 // Validate URL
@@ -225,7 +206,7 @@ function isValidUrl(string) {
   }
 }
 
-// Truncate long URLs
+// Truncate URL
 function truncateUrl(url, maxLength) {
   if (!url) return '';
   return url.length <= maxLength ? url : url.substring(0, maxLength) + '...';
@@ -233,18 +214,16 @@ function truncateUrl(url, maxLength) {
 
 // Show error message
 function showError(message) {
-  // Remove any existing error messages
   const existingError = document.querySelector('.error-message');
   if (existingError) existingError.remove();
   
   const errorDiv = document.createElement('div');
   errorDiv.className = 'error-message';
-  errorDiv.textContent = `⚠️ ${message}`;
+  errorDiv.textContent = message;
   
   const inputGroup = document.querySelector('.input-group');
   inputGroup.parentNode.insertBefore(errorDiv, inputGroup.nextSibling);
   
-  // Auto-remove after 4 seconds
   setTimeout(() => {
     if (errorDiv.parentNode) {
       errorDiv.remove();
