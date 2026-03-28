@@ -69,6 +69,7 @@ header p {
   margin-bottom: 10px;
   font-weight: 600;
   color: #555;
+  font-size: 0.95rem;
 }
 
 .url-input-wrapper {
@@ -106,13 +107,18 @@ header p {
   font-family: inherit;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(102,126,234,0.4);
 }
 
 .btn-primary:active {
   transform: translateY(0);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btn-secondary {
@@ -144,6 +150,7 @@ details summary {
   color: #667eea;
   font-weight: 500;
   user-select: none;
+  font-size: 0.9rem;
 }
 
 details summary:hover {
@@ -161,11 +168,16 @@ details summary:hover {
   margin-bottom: 15px;
 }
 
+.option:last-child {
+  margin-bottom: 0;
+}
+
 .option label {
   display: block;
   margin-bottom: 8px;
   font-weight: 500;
   color: #555;
+  font-size: 0.85rem;
 }
 
 .option input,
@@ -176,19 +188,21 @@ details summary:hover {
   border-radius: 10px;
   font-size: 0.95rem;
   font-family: inherit;
+  transition: all 0.3s ease;
 }
 
 .option input:focus,
 .option select:focus {
   outline: none;
   border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
 }
 
 .option small {
   display: block;
   margin-top: 5px;
   color: #999;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 
 .result {
@@ -219,7 +233,8 @@ details summary:hover {
 
 .result-header h3 {
   color: #333;
-  font-size: 1.1rem;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .close-btn {
@@ -229,6 +244,7 @@ details summary:hover {
   cursor: pointer;
   color: #999;
   transition: color 0.3s ease;
+  line-height: 1;
 }
 
 .close-btn:hover {
@@ -246,9 +262,10 @@ details summary:hover {
   padding: 12px;
   border: 2px solid #e0e0e0;
   border-radius: 10px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   background: white;
   font-family: monospace;
+  word-break: break-all;
 }
 
 .qr-code-container {
@@ -268,7 +285,7 @@ details summary:hover {
   display: flex;
   justify-content: space-between;
   padding-top: 10px;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #777;
   border-top: 1px solid #e0e0e0;
 }
@@ -283,7 +300,8 @@ details summary:hover {
 .recent-links-section h2 {
   margin-bottom: 20px;
   color: #333;
-  font-size: 1.5rem;
+  font-size: 1.3rem;
+  font-weight: 600;
 }
 
 .recent-links-list {
@@ -295,6 +313,10 @@ details summary:hover {
   padding: 15px;
   border-bottom: 1px solid #e0e0e0;
   transition: background 0.3s ease;
+}
+
+.link-item:last-child {
+  border-bottom: none;
 }
 
 .link-item:hover {
@@ -314,8 +336,9 @@ details summary:hover {
   font-weight: 600;
   color: #667eea;
   text-decoration: none;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   word-break: break-all;
+  flex: 1;
 }
 
 .link-short:hover {
@@ -323,7 +346,7 @@ details summary:hover {
 }
 
 .link-original {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #777;
   word-break: break-all;
   margin-bottom: 8px;
@@ -332,14 +355,16 @@ details summary:hover {
 .link-stats {
   display: flex;
   gap: 15px;
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   color: #999;
+  flex-wrap: wrap;
 }
 
 .loading {
   text-align: center;
   padding: 20px;
   color: #999;
+  font-size: 0.9rem;
 }
 
 .error-message {
@@ -348,16 +373,37 @@ details summary:hover {
   padding: 12px;
   border-radius: 10px;
   margin-top: 10px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  animation: fadeIn 0.3s ease-out;
 }
 
 footer {
   text-align: center;
   margin-top: 30px;
   color: rgba(255,255,255,0.8);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
 }
 
+/* Scrollbar styling */
+.recent-links-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.recent-links-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.recent-links-list::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+.recent-links-list::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
   body {
     padding: 15px;
@@ -365,6 +411,10 @@ footer {
   
   header h1 {
     font-size: 2rem;
+  }
+  
+  header p {
+    font-size: 0.9rem;
   }
   
   .card {
@@ -386,5 +436,34 @@ footer {
   .link-item-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+  
+  .link-stats {
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .recent-links-section {
+    padding: 20px;
+  }
+  
+  .recent-links-section h2 {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    max-width: 100%;
+  }
+  
+  .result-header h3 {
+    font-size: 0.9rem;
+  }
+  
+  .stats-preview {
+    flex-direction: column;
+    gap: 5px;
+    text-align: center;
   }
 }
